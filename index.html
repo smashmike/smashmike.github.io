@@ -1,12 +1,195 @@
 <!DOCTYPE html>
-<html>
-  <script
-    src="https://cdn.socket.io/4.7.2/socket.io.min.js"
-    integrity="sha384-mZLF4UVrpi/QTWPA7BjNPEnkIfRFn4ZEO3Qt/HFklTJBj/gBOV8G3HcKn4NfQblz"
-    crossorigin="anonymous"
-  ></script>
-  <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js"></script>
-  <script src="index.js"></script>
-  <body>
-  </body>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Godrift winning</title>
+</head>
+<body>
+<h1>Godrift winning</h1>
+<p>Fill out the form, copy the script, paste it in the Roblox Studio command bar.</p>
+<form id="skill-form">
+  <p>
+    <label for="name">Skill name</label><br />
+    <input id="name" type="text" value="Skill Name" spellcheck="false" />
+  </p>
+  <p>
+    <label for="anim">Animation id</label><br />
+    <input id="anim" type="text" value="rbxassetid://0" spellcheck="false" />
+  </p>
+  <p>
+    <label for="weapon">Weapon type</label><br />
+    <select id="weapon">
+      <option value="">none</option>
+      <option value="sword" selected>sword</option>
+      <option value="dagger">dagger</option>
+      <option value="spear">spear</option>
+      <option value="fist">fist</option>
+      <option value="tome">tome</option>
+    </select>
+  </p>
+  <p>
+    <label for="damage">Damage</label><br />
+    <input id="damage" type="number" value="12" step="1" />
+  </p>
+  <p>
+    <label for="cooldown">Cooldown</label><br />
+    <input id="cooldown" type="number" value="5" step="1" />
+  </p>
+  <p>
+    <label for="range">Range</label><br />
+    <input id="range" type="number" value="8" step="1" />
+  </p>
+  <p>
+    <label for="sound">Sound name (optional)</label><br />
+    <input id="sound" type="text" value="" spellcheck="false" />
+  </p>
+  <p>
+    <label for="template">Template name</label><br />
+    <input id="template" type="text" value="BaseTemplate" spellcheck="false" />
+  </p>
+  <fieldset>
+    <legend>Hit path</legend>
+    <label><input type="radio" name="path" value="physical" checked /> physical</label>
+    <label><input type="radio" name="path" value="mana" /> mana</label>
+    <label><input type="radio" name="path" value="both" /> both</label>
+  </fieldset>
+  <fieldset>
+    <legend>Flags</legend>
+    <div id="flags"></div>
+  </fieldset>
+  <p>
+    <button type="button" id="reset">Reset</button>
+    <button type="button" id="copy">Copy script</button>
+    <span id="status"></span>
+  </p>
+</form>
+<h2>Studio command bar</h2>
+<pre id="preview"></pre>
+<script>
+const FLAGS = [
+  ["slash", "Slash block behavior"],
+  ["blockbreak", "Break block"],
+  ["noparry", "Cannot be parried"],
+  ["manabreaker", "Break spell block"],
+  ["bypassblock", "Ignore block"],
+  ["nododge", "Ignore dodge"],
+  ["downbypass", "Hit knocked targets"],
+  ["executes", "Kill instead of down"],
+  ["knockback", "Knockback"],
+  ["strongknockback", "Strong knockback"],
+  ["nostun", "No stun"],
+  ["nohitanim", "No hit animation"],
+  ["noenchant", "No enchant proc"],
+  ["burn", "Burn"],
+  ["curse", "Curse"],
+  ["poison", "Poison"],
+  ["disarm", "Disarm"]
+];
+
+const flagsRoot = document.getElementById("flags");
+for (const [id, label] of FLAGS) {
+  const lab = document.createElement("label");
+  lab.innerHTML = `<input type="checkbox" data-flag="${id}" /> ${label}<br />`;
+  flagsRoot.appendChild(lab);
+}
+
+function luaString(value) {
+  return '"' + String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n") + '"';
+}
+
+function capitalize(value) {
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function intValue(id) {
+  const n = Number(document.getElementById(id).value);
+  return Number.isFinite(n) ? Math.trunc(n) : 0;
+}
+
+function build() {
+  const name = document.getElementById("name").value.trim() || "Skill";
+  const anim = document.getElementById("anim").value.trim();
+  const weapon = document.getElementById("weapon").value;
+  const template = document.getElementById("template").value.trim() || "BaseTemplate";
+  const sound = document.getElementById("sound").value.trim();
+  const damage = intValue("damage");
+  const cooldown = intValue("cooldown");
+  const range = intValue("range");
+  const path = document.querySelector('input[name="path"]:checked').value;
+  const flags = {};
+  if (path === "physical" || path === "both") flags.physical = true;
+  if (path === "mana" || path === "both") flags.mana = true;
+  if (weapon) flags[weapon] = true;
+  for (const box of document.querySelectorAll("[data-flag]")) {
+    if (box.checked) flags[box.dataset.flag] = true;
+  }
+
+  const parts = [`damage = ${damage}`];
+  for (const key of Object.keys(flags)) parts.push(`${key} = true`);
+  const table = "{" + parts.join(", ") + "}";
+
+  return `
+local ServerStorage = game:GetService("ServerStorage")
+local folder = ServerStorage:FindFirstChild("testSkill")
+assert(folder, "Missing ServerStorage.testSkill")
+local template = folder:FindFirstChild(${luaString(template)})
+assert(template, "Missing template " .. ${luaString(template)})
+
+
+
+local skill = template:Clone()
+skill.Name = ${luaString(name)}
+skill.RequiresWeapon.Value = ${luaString(capitalize(weapon))}
+if weapon == "fist" then
+  skill.RequiresWeapon:Destroy()
+  local temp = instance.new("Folder")
+  temp.Name = "FistSkill"
+  temp.Parent = skill
+end
+if weapon == "tome" then
+  skill.RequiresWeapon:Destroy()
+  local temp = instance.new("Folder")
+  temp.Name = "Spell"
+  temp.Parent = skill
+end
+skill.Animation.AnimationId = ${luaString(anim)}
+skill.Flags.Value = ${luaString(table)}
+skill.Cooldown.Value = ${cooldown}
+skill.Sound.Value = ${luaString(sound)}
+skill.Range.Value = ${range}
+skill.Parent = ServerStorage.Classes
+print("Placed", skill:GetFullName())
+`;
+}
+
+const preview = document.getElementById("preview");
+function refresh() { preview.textContent = build(); }
+document.getElementById("skill-form").addEventListener("input", refresh);
+document.getElementById("copy").addEventListener("click", async () => {
+  const text = build();
+  try {
+    await navigator.clipboard.writeText(text);
+    document.getElementById("status").textContent = "Copied.";
+  } catch (err) {
+    document.getElementById("status").textContent = "Copy failed — select the script manually.";
+  }
+});
+document.getElementById("reset").addEventListener("click", () => {
+  document.getElementById("name").value = "Skill Name";
+  document.getElementById("anim").value = "rbxassetid://0";
+  document.getElementById("weapon").value = "sword";
+  document.getElementById("template").value = "BaseTemplate";
+  document.getElementById("sound").value = "";
+  document.getElementById("damage").value = "12";
+  document.getElementById("cooldown").value = "5";
+  document.getElementById("range").value = "8";
+  document.querySelector('input[name="path"][value="physical"]').checked = true;
+  for (const box of document.querySelectorAll("[data-flag]")) box.checked = false;
+  refresh();
+});
+refresh();
+</script>
+</body>
 </html>
