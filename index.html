@@ -25,7 +25,6 @@
       <option value="dagger">dagger</option>
       <option value="spear">spear</option>
       <option value="fist">fist</option>
-      <option value="tome">tome</option>
     </select>
   </p>
   <p>
@@ -142,13 +141,13 @@ assert(template, "Missing template " .. ${luaString(template)})
 local skill = template:Clone()
 skill.Name = ${luaString(name)}
 skill.RequiresWeapon.Value = ${luaString(capitalize(weapon))}
-if weapon == "fist" then
+if ${luaString(capitalize(weapon))} == "fist" then
   skill.RequiresWeapon:Destroy()
   local temp = instance.new("Folder")
   temp.Name = "FistSkill"
   temp.Parent = skill
 end
-if weapon == "tome" then
+if ${luaString(capitalize(weapon))} == "tome" then
   skill.RequiresWeapon:Destroy()
   local temp = instance.new("Folder")
   temp.Name = "Spell"
