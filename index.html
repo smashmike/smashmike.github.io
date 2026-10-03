@@ -131,8 +131,8 @@ function build() {
 
   return `
 local ServerStorage = game:GetService("ServerStorage")
-local folder = ServerStorage:FindFirstChild("testSkill")
-assert(folder, "Missing ServerStorage.testSkill")
+local folder = ServerStorage:FindFirstChild("skillGen")
+assert(folder, "Missing ServerStorage.skillGen")
 local template = folder:FindFirstChild(${luaString(template)})
 assert(template, "Missing template " .. ${luaString(template)})
 
@@ -142,14 +142,14 @@ local skill = template:Clone()
 skill.Name = ${luaString(name)}
 skill.RequiresWeapon.Value = ${luaString(capitalize(weapon))}
 if ${luaString(capitalize(weapon))} == "fist" then
-  skill.RequiresWeapon:Destroy()
-  local temp = instance.new("Folder")
+  skill.RequiresWeapon.Value = "None"
+  local temp = Instance.new("Folder")
   temp.Name = "FistSkill"
   temp.Parent = skill
 end
 if ${luaString(capitalize(weapon))} == "tome" then
   skill.RequiresWeapon:Destroy()
-  local temp = instance.new("Folder")
+  local temp = Instance.new("Folder")
   temp.Name = "Spell"
   temp.Parent = skill
 end
